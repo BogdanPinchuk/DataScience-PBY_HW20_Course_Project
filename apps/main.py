@@ -16,16 +16,19 @@ from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score, 
 def download_and_extract_from_kagglehub(ds_path: str,
                                         ds_file_name: str,
                                         db_file_name: str,
+                                        ds_name: str = None,
                                         update_db: bool = False) -> DataFrame | None:
     """
     Download and extract data from kagglehub
     :param ds_path: path to kaggle dataset
     :param ds_file_name: name of kaggle dataset
     :param db_file_name: name of a database file
+    :param ds_name: dataset name
     :param update_db: update the database
     :return: DataFrame or None
     """
-    ds_name = ds_path.split("/")[-1].replace('-', '_')
+    if ds_name is None:
+        ds_name = ds_path.split("/")[-1].replace('-', '_')
 
     # Note: to handle error: "SSL: CERTIFICATE_VERIFY_FAILED" or no connection to the server
     try:
