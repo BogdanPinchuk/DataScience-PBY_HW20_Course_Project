@@ -8,7 +8,9 @@ from pandas.io.formats.style import Styler
 from kagglehub import KaggleDatasetAdapter
 from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score, recall_score, f1_score,
                              mean_absolute_error, mean_squared_error, r2_score, classification_report,
-                             roc_auc_score, average_precision_score, mean_absolute_percentage_error)
+                             roc_auc_score, average_precision_score, mean_absolute_percentage_error,
+                             silhouette_score, calinski_harabasz_score, davies_bouldin_score,
+                             adjusted_rand_score, normalized_mutual_info_score)
 
 
 def download_and_extract_from_kagglehub(ds_path: str,
@@ -160,30 +162,45 @@ def calc_regres_metrics(y_test, y_pred) -> Styler:
     return df
 
 
-def calc_curvature_coef(x: np.ndarray, y: np.ndarray, normalize: bool = False) -> np.ndarray:
+def calc_cluster_metrics(data_set: DataFrame, labels_pred, labels_true=None) -> Styler:
     """
-    Calculate curvature coefficients
-    :param x: x coordinates
-    :param y: y coordinates
-    :param normalize: normalize scale
-    :return: curvature coefficients
+    Calc and print the internal and external cluster metrics
+    :param data_set: input dataset
+    :param labels_pred: predicted labels
+    :param labels_true: true labels
+    :return: DataFrame styler
     """
-    x_data = x
-    y_data = y
-    if normalize:
-        x_data = (x_data - x_data.min()) / (x_data.max() - x_data.min())
-        y_data = (y_data - y_data.min()) / (y_data.max() - y_data.min())
+    unique_clusters = len(set(labels_pred))
 
-    dx = np.gradient(x_data)
-    dy = np.gradient(y_data)
-    ddx = np.gradient(dx)
-    ddy = np.gradient(dy)
+    rp = rpt.Reporter()
+    rp.tolerance = 4
+    rp.add_item("Кількість кластерів", str(unique_clusters))
 
-    numerator = dx * ddy - dy * ddx
-    denominator = (dx ** 2 + dy ** 2) ** (1.5)
+    # Internal metrics
+    if unique_clusters > 1:
+        # Silhouette Score
+        sil = silhouette_score(data_set.values, labels_pred)
+        rp.add_item("Silhouette Score", rp.format_value(sil))
+        # Calinski-Harabasz
+        ch = calinski_harabasz_score(data_set.values, labels_pred)
+        rp.add_item("Calinski-Harabasz Index", rp.format_value(ch))
+        # Davies-Bouldin
+        db = davies_bouldin_score(data_set.values, labels_pred)
+        rp.add_item("Davies-Bouldin Index", rp.format_value(db))
 
-    cc = np.zeros_like(x, dtype=float)
-    valid = denominator > 0
-    cc[valid] = numerator[valid] / denominator[valid]
+        if labels_true is not None:
+            # Adjusted Rand
+            ari = adjusted_rand_score(labels_true, labels_pred)
+            rp.add_item("Adjusted Rand Index (ARI)", rp.format_value(ari))
+            # Normalized Mutual Information
+            nmi = normalized_mutual_info_score(labels_true, labels_pred)
+            rp.add_item("Normalized Mutual Information (NMI)", rp.format_value(nmi))
 
-    return cc
+    df = rp.get_pd_report()
+
+    # Print results
+    if labels_true is None:
+        rp.print_pd_report(f"Внутрішні метрики")
+    else:
+        rp.print_pd_report(f"Внутрішні й зовнішні метрики")
+    return df
