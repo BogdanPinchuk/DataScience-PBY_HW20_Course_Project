@@ -217,3 +217,22 @@ def contrast(val1: np.number, val2: np.number) -> float:
     :return: result between 0 and 1
     """
     return abs(val1 - val2) / abs(val1 + val2) if (val1 + val2) != 0 else 0
+
+
+def calc_outliers(ids: Series, data: Series) -> tuple:
+    """
+    Calculation and finding outlier
+    :param ids: IDs
+    :param data: input data
+    :return: list of tuples (feature name, number of outliers, ID list of outliers)
+    """
+    feature_name = data.name
+    # Calculating outliers
+    Q1 = data.quantile(0.25)
+    Q3 = data.quantile(0.75)
+    IQR = Q3 - Q1
+    lower_limit = Q1 - 1.5 * IQR
+    upper_limit = Q3 + 1.5 * IQR
+    merged_data = pd.concat([ids, data], axis=1)
+    outliers = [int(idx) for (idx, value) in merged_data.values if value < lower_limit or value > upper_limit]
+    return feature_name, len(outliers), outliers
