@@ -207,3 +207,13 @@ def calc_cluster_metrics(data_set: DataFrame, labels_pred, labels_true=None) -> 
     else:
         rp.print_pd_report(f"Внутрішні й зовнішні метрики")
     return df
+
+
+def contrast(val1: np.number, val2: np.number) -> float:
+    """
+    Contrast between 2 values
+    :param val1: first value
+    :param val2: second value
+    :return: result between 0 and 1
+    """
+    return abs(val1 - val2) / abs(val1 + val2) if (val1 + val2) != 0 else 0
