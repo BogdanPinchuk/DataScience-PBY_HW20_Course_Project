@@ -3,6 +3,9 @@ import kagglehub
 import numpy as np
 import pandas as pd
 import apps.reporter as rpt
+import matplotlib.pyplot as plt
+from IPython.display import display
+from IPython.core.display import Markdown
 from pandas import Series, DataFrame
 from pandas.io.formats.style import Styler
 from kagglehub import KaggleDatasetAdapter
@@ -10,7 +13,7 @@ from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score, 
                              mean_absolute_error, mean_squared_error, r2_score, classification_report,
                              roc_auc_score, average_precision_score, mean_absolute_percentage_error,
                              silhouette_score, calinski_harabasz_score, davies_bouldin_score,
-                             adjusted_rand_score, normalized_mutual_info_score)
+                             adjusted_rand_score, normalized_mutual_info_score, precision_recall_curve, roc_curve)
 
 
 def download_and_extract_from_kagglehub(ds_path: str,
@@ -87,12 +90,14 @@ def train_test_split_by_order(array, test_size: float) -> tuple:
     return train_array, test_array
 
 
-def calc_class_metrics(y_test, y_pred, y_prob=None) -> Styler:
+def calc_class_metrics(y_test, y_pred, y_prob=None, charts=True, figsize: tuple[float, float] = (10, 4)) -> Styler:
     """
     Calc and print a classifier metrics
     :param y_test: original target test set
     :param y_pred: predicted set
     :param y_prob: probabilities set
+    :param charts: show charts
+    :param figsize: figure size
     :return: DataFrame styler
     """
     rp = rpt.Reporter()
@@ -127,6 +132,40 @@ def calc_class_metrics(y_test, y_pred, y_prob=None) -> Styler:
     # Print results
     rp.print_pd_report(f"Метрики класифікації")
     print(classification_report(y_test, y_pred))
+
+    # Graphic results
+    if y_prob is not None and charts:
+        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        prec, rec, _ = precision_recall_curve(y_test, y_prob)
+
+        _, axes = plt.subplots(1, 2, figsize=figsize)
+
+        ax = axes[0]
+        ax.plot(fpr, tpr)
+        ax.plot([0, 1], [0, 1], '--')
+        ax.fill_between(fpr, tpr, alpha=0.25)
+        ax.grid(axis='both', visible=True, which='major', ls='--', linewidth=1.0, color='tab:gray')
+        # ax.minorticks_on()
+        # ax.grid(axis='both', visible=True, which='minor', ls=':', linewidth=0.5, color='tab:green')
+        ax.set_title("ROC Curve", pad=10, loc='center', color='black')
+        ax.set_xlabel("FPR", labelpad=10, loc='center', color='black')
+        ax.set_ylabel("RPT", labelpad=10, loc='center', color='black')
+
+        ax = axes[1]
+        ax.plot(rec, prec)
+        ax.plot([1, 0], [0, 1], '--')
+        ax.fill_between(rec, prec, alpha=0.25)
+        ax.grid(axis='both', visible=True, which='major', ls='--', linewidth=1.0, color='tab:gray')
+        # ax.minorticks_on()
+        # ax.grid(axis='both', visible=True, which='minor', ls=':', linewidth=0.5, color='tab:green')
+        ax.set_title("Precision-Recall Curve", pad=10, loc='center', color='black')
+        ax.set_xlabel("Recall", labelpad=10, loc='center', color='black')
+        ax.set_ylabel("Precision", labelpad=10, loc='center', color='black')
+
+        plt.suptitle(f"Model Performance Curves")
+
+        plt.tight_layout()
+        plt.show()
 
     return df
 
@@ -236,3 +275,53 @@ def calc_outliers(ids: Series, data: Series) -> tuple:
     merged_data = pd.concat([ids, data], axis=1)
     outliers = [int(idx) for (idx, value) in merged_data.values if value < lower_limit or value > upper_limit]
     return feature_name, len(outliers), outliers
+
+
+def analys_feature_coef(scores: Series, figsize: tuple[float, float] = (12, 5)) -> None:
+    """
+    Display a table of feature coefficients and draw charts,
+    :param scores: series of scores
+    :param figsize: figure size
+    """
+    features = scores.index
+    scores_abs = np.abs(scores)
+    feature_importances = scores / scores_abs.sum()
+    feature_importances_abs = scores_abs / scores_abs.sum()
+    feature_importances_cum = np.cumsum(feature_importances_abs)
+
+    importances_df = (
+        pd.DataFrame({"feature": features, "coef": feature_importances, "coef_abs": feature_importances_abs}).
+        sort_values(by="coef_abs", ascending=False, ignore_index=True))
+
+    # Print results
+    display(importances_df.style.set_caption("Feature Importances"))
+
+    # Graphic results
+    x_axis = np.arange(len(feature_importances_cum))
+
+    _, axes = plt.subplots(1, 2, figsize=figsize)
+
+    ax = axes[0]
+    ax.barh(importances_df["feature"], importances_df["coef"])
+    ax.invert_yaxis()
+    ax.grid(axis='x', visible=True, which='major', ls='--', linewidth=1.0, color='tab:gray')
+    # ax.minorticks_on()
+    # ax.grid(axis='both', visible=True, which='minor', ls=':', linewidth=0.5, color='tab:green')
+    ax.set_title("Feature Coefficients", pad=10, loc='center', color='black')
+    ax.set_xlabel("Coefficient", labelpad=10, loc='center', color='black')
+    ax.set_ylabel("Feature", labelpad=10, loc='center', color='black')
+
+    ax = axes[1]
+    ax.plot(x_axis, feature_importances_cum)
+    ax.fill_between(x_axis, feature_importances_cum, alpha=0.25)
+    ax.grid(axis='both', visible=True, which='major', ls='--', linewidth=1.0, color='tab:gray')
+    # ax.minorticks_on()
+    # ax.grid(axis='both', visible=True, which='minor', ls=':', linewidth=0.5, color='tab:green')
+    ax.set_title("Cumulative Feature Coefficients", pad=10, loc='center', color='black')
+    ax.set_xlabel("Number of Features", labelpad=10, loc='center', color='black')
+    ax.set_ylabel("Cumulative Coefficient", labelpad=10, loc='center', color='black')
+
+    plt.suptitle(f"Analysis of the Feature Coefficients")
+
+    plt.tight_layout()
+    plt.show()
