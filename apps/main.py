@@ -2,6 +2,7 @@ import sqlite3
 import kagglehub
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import apps.reporter as rpt
 import matplotlib.pyplot as plt
 from IPython.display import display
@@ -279,7 +280,7 @@ def calc_outliers(ids: Series, data: Series) -> tuple:
 
 def analys_feature_coef(scores: Series, figsize: tuple[float, float] = (12, 5)) -> None:
     """
-    Display a table of feature coefficients and draw charts,
+    Display a table of feature coefficients and draw charts
     :param scores: series of scores
     :param figsize: figure size
     """
@@ -341,3 +342,41 @@ def pred_result_to_class(y_real: int, y_pred: int) -> str | None:
         return "TP"
     else:
         return None
+
+
+def analys_feature_profile(data_set: DataFrame, id_col_name: str, figsize: tuple[float, float] = (12, 7)) -> None:
+    """
+    Draw a chart of the feature profile
+    :param data_set: data set of data
+    :param id_col_name: id column name
+    :param figsize: figure size
+    """
+    df_long = data_set.melt(
+        id_vars=id_col_name,
+        var_name="feature",
+        value_name="value"
+    )
+
+    _, ax = plt.subplots(figsize=figsize)
+
+    sns.lineplot(data=df_long,
+                 x="feature",
+                 y="value",
+                 hue=id_col_name,
+                 ax=ax,
+                 marker="o",
+                 linewidth=2.5,
+                 errorbar="sd",
+                 err_style="band",
+                 err_kws={"alpha": 0.15})
+
+    ax.grid(axis='both', visible=True, which='major', ls='--', linewidth=1.0, color='tab:gray')
+    ax.set_title("Feature profile", pad=10, loc='center', color='black')
+    ax.set_ylabel("Value", labelpad=10, loc='center', color='black')
+    ax.set_xlabel("Feature", labelpad=10, loc='center', color='black')
+
+    plt.xticks(rotation=90, ha="center")
+    # plt.suptitle("Prediction analysis")
+
+    plt.tight_layout()
+    plt.show()
