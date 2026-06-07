@@ -344,11 +344,15 @@ def pred_result_to_class(y_real: int, y_pred: int) -> str | None:
         return None
 
 
-def analys_feature_profile(data_set: DataFrame, id_col_name: str, figsize: tuple[float, float] = (12, 7)) -> None:
+def analys_feature_profile(data_set: DataFrame,
+                           id_col_name: str,
+                           title: str = None,
+                           figsize: tuple[float, float] = (12, 7)) -> None:
     """
     Draw a chart of the feature profile
     :param data_set: data set of data
     :param id_col_name: id column name
+    :param title: title of the chart
     :param figsize: figure size
     """
     df_long = data_set.melt(
@@ -376,7 +380,8 @@ def analys_feature_profile(data_set: DataFrame, id_col_name: str, figsize: tuple
     ax.set_xlabel("Feature", labelpad=10, loc='center', color='black')
 
     plt.xticks(rotation=90, ha="center")
-    # plt.suptitle("Prediction analysis")
+    if title is not None:
+        plt.suptitle(title)
 
     plt.tight_layout()
     plt.show()
