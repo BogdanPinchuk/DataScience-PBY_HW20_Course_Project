@@ -325,3 +325,19 @@ def analys_feature_coef(scores: Series, figsize: tuple[float, float] = (12, 5)) 
 
     plt.tight_layout()
     plt.show()
+
+
+def pred_result_to_class(y_real: int, y_pred: int) -> str | None:
+    """
+    Convert real and predictedresunt into name from Confusion Matrix
+    """
+    if y_real == 0 and y_pred == 0:
+        return "TN"
+    elif y_real == 0 and y_pred == 1:
+        return "FP"
+    elif y_real == 1 and y_pred == 0:
+        return "FN"
+    elif y_real == 1 and y_pred == 1:
+        return "TP"
+    else:
+        return None
