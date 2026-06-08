@@ -370,7 +370,7 @@ def analys_feature_profile(data_set: DataFrame,
                  ax=ax,
                  marker="o",
                  linewidth=2.5,
-                 errorbar="sd",
+                 # errorbar="sd",
                  err_style="band",
                  err_kws={"alpha": 0.15})
 
@@ -383,5 +383,6 @@ def analys_feature_profile(data_set: DataFrame,
     if title is not None:
         plt.suptitle(title)
 
+    plt.legend()
     plt.tight_layout()
     plt.show()
